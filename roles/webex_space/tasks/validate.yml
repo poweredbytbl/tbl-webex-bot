@@ -1,0 +1,27 @@
+---
+- name: Validate action value
+  ansible.builtin.assert:
+    that:
+      - webex_action in ['create', 'message', 'both']
+    fail_msg: "webex_action must be one of: create, message, both"
+
+- name: Validate required token
+  ansible.builtin.assert:
+    that:
+      - webex_bot_token | length > 0
+    fail_msg: "webex_bot_token is required"
+
+- name: Validate create inputs
+  ansible.builtin.assert:
+    that:
+      - webex_space_title | length > 0 or webex_space_id | length > 0
+    fail_msg: "For create/both, set webex_space_title or webex_space_id"
+  when: webex_action in ['create', 'both']
+
+- name: Validate message inputs
+  ansible.builtin.assert:
+    that:
+      - webex_space_id | length > 0 or webex_space_title | length > 0
+      - (webex_message | length > 0) or (webex_markdown | length > 0) or (webex_messages | length > 0)
+    fail_msg: "For message/both, set a target space and at least one of webex_message, webex_markdown, webex_messages"
+  when: webex_action in ['message', 'both']

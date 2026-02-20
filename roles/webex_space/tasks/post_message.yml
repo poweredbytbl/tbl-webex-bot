@@ -1,0 +1,44 @@
+---
+- name: Resolve message target space by title when needed
+  ansible.builtin.include_tasks: create_space.yml
+  when: webex_space_id | length == 0
+
+- name: Build outbound message list
+  ansible.builtin.set_fact:
+    _webex_messages_outbound: >-
+      {{
+        (
+          webex_messages
+          if (webex_messages | length > 0)
+          else [
+            {
+              'text': webex_message,
+              'markdown': webex_markdown
+            }
+          ]
+        )
+      }}
+
+- name: Debug outbound messages
+  ansible.builtin.debug:
+    var: _webex_messages_outbound
+
+- name: Post messages to Webex
+  ansible.builtin.uri:
+    url: "{{ webex_api_base_url }}/messages"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ webex_bot_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      roomId: "{{ webex_space_id }}"
+      text: "{{ item.text | default(omit) }}"
+      markdown: "{{ item.markdown | default(omit) }}"
+    return_content: true
+    validate_certs: "{{ webex_validate_certs }}"
+    timeout: "{{ webex_timeout }}"
+    status_code: 200
+  loop: "{{ _webex_messages_outbound }}"
+  when:
+    - (item.text | default('') | length > 0) or (item.markdown | default('') | length > 0)

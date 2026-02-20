@@ -1,0 +1,26 @@
+---
+# Cisco Webex API base URL
+webex_api_base_url: "https://webexapis.com/v1"
+
+# Bot token with rights to create spaces, invite participants, and post messages
+webex_bot_token: ""
+
+# Operation selector: create, message, or both
+webex_action: "both"
+
+# Space config
+webex_space_title: ""
+webex_space_id: ""
+webex_reuse_existing_space: true
+
+# Participant e-mail addresses to invite to the space
+webex_participants: []
+
+# Message config
+webex_message: ""
+webex_markdown: ""
+webex_messages: []
+
+# API behavior
+webex_validate_certs: true
+webex_timeout: 30

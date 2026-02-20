@@ -1,0 +1,11 @@
+---
+- name: Validate role inputs
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Create or resolve Webex space and manage participants
+  ansible.builtin.include_tasks: create_space.yml
+  when: webex_action in ['create', 'both']
+
+- name: Post message(s) to Webex space
+  ansible.builtin.include_tasks: post_message.yml
+  when: webex_action in ['message', 'both']

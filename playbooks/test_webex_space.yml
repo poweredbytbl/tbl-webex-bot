@@ -1,0 +1,40 @@
+---
+- name: Test webex_space role
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Required env vars:
+    #   WEBEX_BOT_TOKEN
+    #   WEBEX_SPACE_TITLE
+    # Optional env vars:
+    #   WEBEX_PARTICIPANTS (comma-separated emails)
+    #   WEBEX_TEST_MESSAGE
+    _test_webex_bot_token: "{{ lookup('ansible.builtin.env', 'WEBEX_BOT_TOKEN') }}"
+    _test_webex_space_title: "{{ lookup('ansible.builtin.env', 'WEBEX_SPACE_TITLE') }}"
+    _test_webex_participants: >-
+      {{
+        (lookup('ansible.builtin.env', 'WEBEX_PARTICIPANTS') | default('', true)).split(',')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _test_webex_message: "{{ lookup('ansible.builtin.env', 'WEBEX_TEST_MESSAGE') | default('Ansible Webex role test message', true) }}"
+
+  roles:
+    - role: webex_space
+      vars:
+        webex_action: "both"
+        webex_bot_token: "{{ _test_webex_bot_token }}"
+        webex_space_title: "{{ _test_webex_space_title }}"
+        webex_participants: "{{ _test_webex_participants }}"
+        # webex_message: "{{ _test_webex_message }}"
+        webex_markdown: |
+          # Ansible Automation
+
+          ISE Upgrade has started!
+
+          ```
+          ansible-playbook upgrade_ise.yml
+          ```

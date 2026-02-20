@@ -1,0 +1,4 @@
+---
+# External collections required by this project.
+# This role currently uses only ansible-core builtins, so this list is empty.
+collections: []

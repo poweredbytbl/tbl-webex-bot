@@ -1,0 +1,124 @@
+---
+- name: Normalize participant list
+  ansible.builtin.set_fact:
+    _webex_participants_normalized: >-
+      {{
+        webex_participants
+        | map('trim')
+        | reject('equalto', '')
+        | map('lower')
+        | unique
+        | list
+      }}
+
+- name: Resolve space by ID when provided
+  ansible.builtin.set_fact:
+    webex_effective_space_id: "{{ webex_space_id }}"
+  when: webex_space_id | length > 0
+
+- name: Find existing space by title
+  ansible.builtin.uri:
+    url: "{{ webex_api_base_url }}/rooms?max=1000"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ webex_bot_token }}"
+      Content-Type: application/json
+    return_content: true
+    validate_certs: "{{ webex_validate_certs }}"
+    timeout: "{{ webex_timeout }}"
+    status_code: 200
+  register: _webex_rooms
+  when:
+    - webex_effective_space_id is not defined
+    - webex_reuse_existing_space | bool
+
+- name: Reuse existing space with exact title match
+  ansible.builtin.set_fact:
+    webex_effective_space_id: >-
+      {{
+        (
+          _webex_rooms.json['items']
+          | selectattr('title', 'equalto', webex_space_title)
+          | map(attribute='id')
+          | list
+          | first
+        )
+      }}
+  when:
+    - webex_effective_space_id is not defined
+    - webex_reuse_existing_space | bool
+    - ((_webex_rooms.json['items'] | default([])) | selectattr('title', 'equalto', webex_space_title) | list | length) > 0
+
+- name: Create Webex space when no match is found
+  ansible.builtin.uri:
+    url: "{{ webex_api_base_url }}/rooms"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ webex_bot_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      title: "{{ webex_space_title }}"
+    return_content: true
+    validate_certs: "{{ webex_validate_certs }}"
+    timeout: "{{ webex_timeout }}"
+    status_code: 200
+  register: _webex_created_room
+  when: webex_effective_space_id is not defined
+
+- name: Set effective space ID from created room
+  ansible.builtin.set_fact:
+    webex_effective_space_id: "{{ _webex_created_room.json.id }}"
+  when:
+    - webex_effective_space_id is not defined
+    - _webex_created_room is defined
+
+- name: List existing memberships for space
+  ansible.builtin.uri:
+    url: "{{ webex_api_base_url }}/memberships?roomId={{ webex_effective_space_id }}&max=1000"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ webex_bot_token }}"
+      Content-Type: application/json
+    return_content: true
+    validate_certs: "{{ webex_validate_certs }}"
+    timeout: "{{ webex_timeout }}"
+    status_code: 200
+  register: _webex_memberships
+  when: _webex_participants_normalized | length > 0
+
+- name: Build existing participant list
+  ansible.builtin.set_fact:
+    _webex_existing_participants: >-
+      {{
+        (_webex_memberships.json['items'] | default([]))
+        | map(attribute='personEmail')
+        | map('default', '')
+        | map('lower')
+        | list
+      }}
+  when: _webex_participants_normalized | length > 0
+
+- name: Add missing participants
+  ansible.builtin.uri:
+    url: "{{ webex_api_base_url }}/memberships"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ webex_bot_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      roomId: "{{ webex_effective_space_id }}"
+      personEmail: "{{ item }}"
+    return_content: true
+    validate_certs: "{{ webex_validate_certs }}"
+    timeout: "{{ webex_timeout }}"
+    status_code: 200
+  loop: "{{ _webex_participants_normalized }}"
+  when:
+    - _webex_participants_normalized | length > 0
+    - item not in _webex_existing_participants
+
+- name: Expose resulting space ID
+  ansible.builtin.set_fact:
+    webex_space_id: "{{ webex_effective_space_id }}"

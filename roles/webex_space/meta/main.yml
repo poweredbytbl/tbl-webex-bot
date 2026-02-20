@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: David Cantwell
+  description: Create/reuse a Cisco Webex space, invite participants, and post messages.
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.12"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+dependencies: []
