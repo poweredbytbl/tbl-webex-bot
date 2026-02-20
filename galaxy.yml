@@ -1,0 +1,24 @@
+---
+namespace: tbl
+name: webex_bot
+version: 0.1.0
+readme: README.md
+authors:
+  - David Cantwell
+
+description: Ansible collection for creating Cisco Webex spaces and posting messages.
+license:
+  - GPL-3.0-or-later
+tags:
+  - webex
+  - cisco
+  - notifications
+  - automation
+
+dependencies: {}
+build_ignore:
+  - .git
+  - .gitignore
+  - .venv
+  - .vscode
+  - .ansible.log
